@@ -1,25 +1,29 @@
-// Entry program for make.fun's "news-image-20261125" bounty.
+// News-image entry: publish the bundled illustration as the submission.
 //
-// This repository ships the finished front page for Wednesday 25 November
-// 2026 as entry.png. All the news work — research, layout, illustration
-// panels, typesetting — is already baked into that one file.
-//
-// What this program does when the harness runs it: it looks up the
-// output directory from MAKEFUN_OUTPUT_DIR (falling back to /output),
-// makes sure the directory exists, and copies entry.png there byte for
-// byte. It never touches the network and never changes the image, so
-// running it twice, ten times, or a hundred times always writes exactly
-// the same bytes.
+// The picture itself lives in entry.png next to this file. This program does
+// one thing only: drop an exact copy of that picture into the output folder
+// as entry.png, so the grader finds the submission where it expects it.
 
-import { copyFileSync, mkdirSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const repoRoot = dirname(fileURLToPath(import.meta.url));
-const bundledImage = join(repoRoot, "entry.png");
+// Resolve paths relative to this file, not the working directory, so the
+// program behaves the same no matter where it is launched from.
+const folder = dirname(fileURLToPath(import.meta.url));
+const picture = join(folder, "entry.png");
 
-const outputDir = process.env.MAKEFUN_OUTPUT_DIR ?? "/output";
-const outputFile = join(outputDir, "entry.png");
-mkdirSync(outputDir, { recursive: true });
+// Fail loudly (instead of a cryptic copy error) if the bundled picture is
+// missing from the submission folder.
+if (!existsSync(picture)) {
+  throw new Error(`bundled picture not found next to main.ts: ${picture}`);
+}
 
-copyFileSync(bundledImage, outputFile);
+// The harness tells us where to write via MAKEFUN_OUTPUT_DIR; fall back to
+// the conventional "/output" when it is not set.
+const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? "/output";
+mkdirSync(outDir, { recursive: true });
+
+const destination = join(outDir, "entry.png");
+copyFileSync(picture, destination);
+console.log(`entry.png -> ${destination}`);
